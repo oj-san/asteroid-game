@@ -1,0 +1,103 @@
+import * as THREE from 'three';
+
+export class DebugManager {
+    constructor(scene) {
+        this.scene = scene;
+        this.debugElement = document.createElement('div');
+        this.debugElement.style.position = 'fixed';
+        this.debugElement.style.top = '10px';
+        this.debugElement.style.right = '10px';
+        this.debugElement.style.color = 'white';
+        this.debugElement.style.fontFamily = 'monospace';
+        this.debugElement.style.fontSize = '12px';
+        this.debugElement.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        this.debugElement.style.padding = '10px';
+        this.debugElement.style.borderRadius = '5px';
+        this.debugElement.style.zIndex = '1000';
+        document.body.appendChild(this.debugElement);
+
+        this.lastFrameTime = performance.now();
+        this.isDebugEnabled = false;  // Debug visualization starts disabled
+    }
+
+    toggleDebug() {
+        this.isDebugEnabled = !this.isDebugEnabled;
+        
+        // Toggle visibility of debug elements
+        if (this.sphereDebug) {
+            this.sphereDebug.visible = this.isDebugEnabled;
+        }
+        if (this.sphereCenter) {
+            this.sphereCenter.visible = this.isDebugEnabled;
+        }
+        this.debugElement.style.display = this.isDebugEnabled ? 'block' : 'none';
+    }
+
+    createSpawnSphereVisualization(radius, distance) {
+        // Create sphere geometry for visualization
+        const sphereGeometry = new THREE.SphereGeometry(radius, 32, 32);
+        const sphereEdges = new THREE.EdgesGeometry(sphereGeometry);
+        const sphereLine = new THREE.LineSegments(
+            sphereEdges,
+            new THREE.LineBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.5 })
+        );
+        this.sphereDebug = sphereLine;
+        this.sphereDebug.visible = this.isDebugEnabled;  // Set initial visibility
+        this.scene.add(this.sphereDebug);
+
+        // Create a point for the sphere center
+        const centerGeometry = new THREE.SphereGeometry(5, 16, 16);
+        const centerMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        this.sphereCenter = new THREE.Mesh(centerGeometry, centerMaterial);
+        this.sphereCenter.visible = this.isDebugEnabled;  // Set initial visibility
+        this.scene.add(this.sphereCenter);
+
+        // Store spawn sphere parameters
+        this.spawnSphereRadius = radius;
+        this.spawnSphereDistance = distance;
+    }
+
+    updateSpawnSphereVisualization(playerPosition) {
+        if (this.sphereDebug && this.sphereCenter && this.isDebugEnabled) {
+            const sphereCenter = new THREE.Vector3(
+                playerPosition.x,
+                playerPosition.y,
+                playerPosition.z + this.spawnSphereDistance
+            );
+            this.sphereDebug.position.copy(sphereCenter);
+            this.sphereCenter.position.copy(sphereCenter);
+        }
+    }
+
+    update(player, asteroidManager) {
+        if (!this.isDebugEnabled) return;
+
+        const speedInKmh = (player.getCurrentSpeed() * 3600).toFixed(1);
+        const distanceInKm = (player.getDistanceTraveled() / 1000).toFixed(2);
+        
+        this.debugElement.innerHTML = `
+            <div>FPS: ${Math.round(1000 / (performance.now() - this.lastFrameTime))}</div>
+            <div>Asteroids: ${asteroidManager.asteroids.length}</div>
+            <div>Speed: ${speedInKmh} km/h</div>
+            <div>Distance: ${distanceInKm} km</div>
+            <div>Position: (${player.mesh.position.x.toFixed(1)}, ${player.mesh.position.y.toFixed(1)}, ${player.mesh.position.z.toFixed(1)})</div>
+        `;
+        
+        this.lastFrameTime = performance.now();
+
+        // Update spawn sphere visualization
+        this.updateSpawnSphereVisualization(player.mesh.position);
+    }
+
+    remove() {
+        if (this.debugElement && this.debugElement.parentNode) {
+            this.debugElement.parentNode.removeChild(this.debugElement);
+        }
+        if (this.sphereDebug) {
+            this.scene.remove(this.sphereDebug);
+        }
+        if (this.sphereCenter) {
+            this.scene.remove(this.sphereCenter);
+        }
+    }
+} 
