@@ -1,9 +1,9 @@
 # Dependency directories
 node_modules/
 
-# Build output
-dist/
-build/
+# Build output will be kept in order to publish using Git Pages
+# dist/
+# build/
 
 # Logs
 logs
