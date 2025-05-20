@@ -17,7 +17,7 @@ export class Player {
         // Load the ship model
         const loader = new GLTFLoader();
         loader.load(
-            '/art/ship.glb',
+            './art/ship.glb',
             (gltf) => {
                 // Set up the ship model
                 this.mesh = gltf.scene;
