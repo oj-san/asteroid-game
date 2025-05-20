@@ -14,21 +14,21 @@ export class Player {
     }
 
     createMesh() {
-        // Load the ship model
         const loader = new GLTFLoader();
         loader.load(
-            './art/ship.glb',
-            (gltf) => {
-                // Set up the ship model
-                this.mesh = gltf.scene;
-                this.scene.add(this.mesh);
-            },
-            undefined,
-            (error) => {
-                console.error('Error loading ship model:', error);
-            }
+          // Use this path:
+          `${import.meta.env.BASE_URL}art/ship.glb`,
+          (gltf) => {
+            this.mesh = gltf.scene;
+            this.scene.add(this.mesh);
+          },
+          undefined,
+          (error) => {
+            console.error('Error loading ship model:', error);
+          }
         );
-    }
+      }
+      
 
     update(inputManager) {
         // Always move forward (towards positive Z)
