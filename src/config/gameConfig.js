@@ -3,29 +3,26 @@ export const GAME_CONFIG = {
         color: 0x000000,  // Black fog
         density: 0.002    // Base density
     },
+    gameSpeed: 5,  // Global game speed that affects asteroid movement
     player: {
-        baseSpeed: 0.1,
-        maxSpeed: 12.0,
-        acceleration: 0.02,
         movementSensitivity: 0.1,
         collisionRadius: 2  // Approximate player collision radius
     },
     asteroids: {
+        pool: {
+            totalCount: 500,  // Total number of asteroids in the pool
+            spawnRate: 30,   // Asteroids to spawn per second
+            initialSpawnDistance: -100 // Initial spawn position behind player
+        },
         spawnSphere: {
             radius: 500,
             distance: 1200,
             minAsteroidDistance: 20,
-            maxCount: 1000  // Maximum number of asteroids in the scene
+            checkOverlap: false  // Whether to check for overlapping asteroids during spawn
         },
         size: {
             min: 5,
-            max: 20
-        },
-        mesh: {
-            color: 0x808080,  // Gray color
-            geometry: {
-                detail: 0  // Icosahedron detail level
-            }
+            max: 50
         },
         rotation: {
             speed: 0.01

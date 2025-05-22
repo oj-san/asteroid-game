@@ -24,6 +24,7 @@ export class Game {
         this.setupLighting();
         this.setupEventListeners();
         
+        this.lastFrameTime = performance.now();
         this.initializeGame();
     }
 
@@ -56,6 +57,7 @@ export class Game {
         );
         
         this.gameOver = false;
+        this.gameTime = 0; // Track game time for scoring
     }
 
     setupLighting() {
@@ -105,14 +107,19 @@ export class Game {
     update() {
         if (this.gameOver) return;
 
+        // Calculate delta time
+        const currentTime = performance.now();
+        const deltaTime = (currentTime - this.lastFrameTime) / 1000; // Convert to seconds
+        this.lastFrameTime = currentTime;
+
+        // Update game time
+        this.gameTime += deltaTime;
+
         // Update player
         this.player.update(this.inputManager);
 
-        // Update score display with distance traveled and current speed
-        this.scoreManager.updateDisplay(
-            this.player.getDistanceTraveled(),
-            this.player.getCurrentSpeed()
-        );
+        // Update score display with game time
+        this.scoreManager.updateDisplay(this.gameTime);
 
         // Update debug display
         this.debugManager.update(this.player, this.asteroidManager);
@@ -130,8 +137,8 @@ export class Game {
         );
         this.camera.lookAt(lookAtPosition);
 
-        // Update asteroids
-        this.asteroidManager.update();
+        // Update asteroids with delta time
+        this.asteroidManager.update(deltaTime);
         
         // Check collisions
         if (this.asteroidManager.checkCollisions(this.player)) {
@@ -141,8 +148,7 @@ export class Game {
 
     handleGameOver() {
         this.gameOver = true;
-        const finalDistance = this.player.getDistanceTraveled();
-        const distanceInKm = (finalDistance / 1000).toFixed(2);
+        const timeInMinutes = (this.gameTime / 60).toFixed(1);
         
         // Create game over message
         this.gameOverMessage = document.createElement('div');
@@ -161,7 +167,7 @@ export class Game {
         
         this.gameOverMessage.innerHTML = `
             <h2>Game Over!</h2>
-            <p>Distance Traveled: ${distanceInKm} km</p>
+            <p>Survival Time: ${timeInMinutes} minutes</p>
             <p>Press SPACE to restart</p>
         `;
         

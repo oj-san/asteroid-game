@@ -5,10 +5,6 @@ import { GAME_CONFIG } from '../config/gameConfig.js';
 export class Player {
     constructor(scene) {
         this.scene = scene;
-        this.baseSpeed = GAME_CONFIG.player.baseSpeed;
-        this.currentSpeed = this.baseSpeed;
-        this.maxSpeed = GAME_CONFIG.player.maxSpeed;
-        this.acceleration = GAME_CONFIG.player.acceleration;
         this.movementSensitivity = GAME_CONFIG.player.movementSensitivity;
         this.createMesh();
     }
@@ -16,24 +12,19 @@ export class Player {
     createMesh() {
         const loader = new GLTFLoader();
         loader.load(
-          // Use this path:
-          `${import.meta.env.BASE_URL}art/ship.glb`,
-          (gltf) => {
-            this.mesh = gltf.scene;
-            this.scene.add(this.mesh);
-          },
-          undefined,
-          (error) => {
-            console.error('Error loading ship model:', error);
-          }
+            `${import.meta.env.BASE_URL}art/ship.glb`,
+            (gltf) => {
+                this.mesh = gltf.scene;
+                this.scene.add(this.mesh);
+            },
+            undefined,
+            (error) => {
+                console.error('Error loading ship model:', error);
+            }
         );
-      }
-      
+    }
 
     update(inputManager) {
-        // Always move forward (towards positive Z)
-        this.mesh.position.z += this.currentSpeed;
-        
         // Get mouse movement
         const movement = inputManager.getMovement();
         
@@ -44,20 +35,9 @@ export class Player {
         
         // Reset movement after applying it
         inputManager.resetMovement();
-
-        // Accelerate over time with a more gradual curve
-        if (this.currentSpeed < this.maxSpeed) {
-            // Slower acceleration as we approach max speed
-            const accelerationFactor = 1 - (this.currentSpeed / this.maxSpeed);
-            this.currentSpeed += this.acceleration * accelerationFactor;
-        }
     }
 
-    getDistanceTraveled() {
-        return this.mesh.position.z;
-    }
-
-    getCurrentSpeed() {
-        return this.currentSpeed;
+    getPosition() {
+        return this.mesh.position;
     }
 } 

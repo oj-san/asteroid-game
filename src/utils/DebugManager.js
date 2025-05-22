@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GAME_CONFIG } from '../config/gameConfig.js';
 
 export class DebugManager {
     constructor(scene) {
@@ -72,14 +73,20 @@ export class DebugManager {
     update(player, asteroidManager) {
         if (!this.isDebugEnabled) return;
 
-        const speedInKmh = (player.getCurrentSpeed() * 3600).toFixed(1);
-        const distanceInKm = (player.getDistanceTraveled() / 1000).toFixed(2);
+        const fps = Math.round(1000 / (performance.now() - this.lastFrameTime));
+        const debugInfo = asteroidManager.getDebugInfo();
         
         this.debugElement.innerHTML = `
-            <div>FPS: ${Math.round(1000 / (performance.now() - this.lastFrameTime))}</div>
-            <div>Asteroids: ${asteroidManager.asteroids.length}</div>
-            <div>Speed: ${speedInKmh} km/h</div>
-            <div>Distance: ${distanceInKm} km</div>
+            <div>FPS: ${fps}</div>
+            <div>Asteroid Pool:</div>
+            <div>  Total: ${debugInfo.totalAsteroids}/${GAME_CONFIG.asteroids.pool.totalCount}</div>
+            <div>  Available: ${debugInfo.availableAsteroids}</div>
+            <div>  Incoming: ${debugInfo.totalAsteroids - debugInfo.availableAsteroids}</div>
+            <div>Spawn System:</div>
+            <div>  Timer: ${debugInfo.spawnTimer.toFixed(2)}s</div>
+            <div>  Rate: ${debugInfo.spawnRate}/s</div>
+            <div>  Last Spawn: ${debugInfo.lastSpawnCount}</div>
+            <div>Game Speed: ${GAME_CONFIG.gameSpeed.toFixed(2)}</div>
             <div>Position: (${player.mesh.position.x.toFixed(1)}, ${player.mesh.position.y.toFixed(1)}, ${player.mesh.position.z.toFixed(1)})</div>
         `;
         
