@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import { Player } from '../entities/Player.js';
 import { AsteroidManager } from '../entities/AsteroidManager.js';
-import { InputManager } from '../utils/InputManager.js';
+import { InputManager } from '../utils/input/InputManager.js';
 import { ScoreManager } from '../utils/ScoreManager.js';
 import { DebugManager } from '../utils/DebugManager.js';
+import { CameraManager } from '../utils/CameraManager.js';
+import { DustParticleSystem } from '../effects/DustParticleSystem.js';
+import { SpawnManager } from '../utils/SpawnManager.js';
 import { GAME_CONFIG } from '../config/gameConfig.js';
 
 export class Game {
@@ -49,6 +52,9 @@ export class Game {
         this.debugManager = new DebugManager(this.scene);
         this.player = new Player(this.scene);
         this.asteroidManager = new AsteroidManager(this.scene, this.player);
+        this.cameraManager = new CameraManager(this.camera);
+        this.dustParticleSystem = new DustParticleSystem(this.scene);
+        this.spawnManager = SpawnManager.getInstance(this.scene);
         
         // Initialize debug visualization
         this.debugManager.createSpawnSphereVisualization(
@@ -64,7 +70,7 @@ export class Game {
         const ambientLight = new THREE.AmbientLight(0x404040);
         this.scene.add(ambientLight);
         
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.1);
         directionalLight.position.set(1, 1, 1);
         this.scene.add(directionalLight);
     }
@@ -76,12 +82,22 @@ export class Game {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Add space key listener for restart
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && this.gameOver) {
+        // Add click/touch listener for restart
+        window.addEventListener('mousedown', () => {
+            if (this.gameOver) {
                 this.restart();
             }
-            // Toggle debug visualization with F2 key
+        });
+
+        // Add touch listener for mobile devices
+        window.addEventListener('touchstart', () => {
+            if (this.gameOver) {
+                this.restart();
+            }
+        });
+
+        // Toggle debug visualization with F2 key
+        window.addEventListener('keydown', (e) => {
             if (e.code === 'F2') {
                 this.debugManager.toggleDebug();
             }
@@ -95,9 +111,12 @@ export class Game {
             this.gameOverMessage = null;
         }
         
-        // Remove debug display
+        // Remove debug display and particle system
         if (this.debugManager) {
             this.debugManager.remove();
+        }
+        if (this.dustParticleSystem) {
+            this.dustParticleSystem.remove();
         }
         
         this.initializeGame();
@@ -115,30 +134,26 @@ export class Game {
         // Update game time
         this.gameTime += deltaTime;
 
-        // Update player
-        this.player.update(this.inputManager);
+        // Update player with deltaTime
+        this.player.update(this.inputManager, deltaTime);
 
         // Update score display with game time
         this.scoreManager.updateDisplay(this.gameTime);
 
         // Update debug display
-        this.debugManager.update(this.player, this.asteroidManager);
+        this.debugManager.update(this.player, this.asteroidManager, this.inputManager);
 
-        // Update camera position - position it behind and above the player, looking forward
-        this.camera.position.x = this.player.mesh.position.x;
-        this.camera.position.z = this.player.mesh.position.z - 20; // Position behind player
-        this.camera.position.y = this.player.mesh.position.y + 10;
-        
-        // Look ahead of the player
-        const lookAtPosition = new THREE.Vector3(
-            this.player.mesh.position.x,
-            this.player.mesh.position.y,
-            this.player.mesh.position.z + 50 // Look 50 units ahead
-        );
-        this.camera.lookAt(lookAtPosition);
+        // Update camera using camera manager
+        this.cameraManager.update(this.player, deltaTime);
 
         // Update asteroids with delta time
         this.asteroidManager.update(deltaTime);
+        
+        // Update dust particles
+        this.dustParticleSystem.update(this.player.getPosition(), deltaTime);
+        
+        // Update spawn manager
+        this.spawnManager.update(this.player.getPosition());
         
         // Check collisions
         if (this.asteroidManager.checkCollisions(this.player)) {
@@ -164,11 +179,12 @@ export class Game {
         this.gameOverMessage.style.padding = '20px';
         this.gameOverMessage.style.borderRadius = '10px';
         this.gameOverMessage.style.zIndex = '1000';
+        this.gameOverMessage.style.cursor = 'pointer'; // Add pointer cursor
         
         this.gameOverMessage.innerHTML = `
             <h2>Game Over!</h2>
             <p>Survival Time: ${timeInMinutes} minutes</p>
-            <p>Press SPACE to restart</p>
+            <p>Click or tap anywhere to restart</p>
         `;
         
         document.body.appendChild(this.gameOverMessage);

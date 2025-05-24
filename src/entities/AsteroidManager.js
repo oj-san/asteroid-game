@@ -58,9 +58,12 @@ export class AsteroidManager {
     }
 
     spawnFromPool() {
-        // Find asteroids that are behind the player
+        // Skip spawning if player mesh hasn't loaded yet
+        if (!this.player.mesh) return false;
+
+        // Find asteroids that are behind the player and have loaded their mesh
         const availableAsteroids = this.asteroids.filter(asteroid => 
-            asteroid.getPosition().z < this.player.mesh.position.z - GAME_CONFIG.asteroids.despawnDistance
+            asteroid.mesh && asteroid.getPosition().z < this.player.mesh.position.z - GAME_CONFIG.asteroids.despawnDistance
         );
 
         if (availableAsteroids.length > 0) {
@@ -110,10 +113,10 @@ export class AsteroidManager {
         for (const asteroid of this.asteroids) {
             const asteroidPos = asteroid.getPosition();
             
-            // Move asteroid towards player along Z axis only
-            asteroidPos.z -= GAME_CONFIG.gameSpeed;
+            // Move asteroid towards player along Z axis only, using deltaTime for frame-rate independent movement
+            asteroidPos.z -= GAME_CONFIG.gameSpeed * deltaTime;
             
-            asteroid.update();
+            asteroid.update(deltaTime);
         }
     }
 
@@ -131,17 +134,23 @@ export class AsteroidManager {
     }
 
     checkCollisions(player) {
-        /*const playerPos = player.mesh.position;
+        // Skip collision check if disabled in config or player mesh hasn't loaded yet
+        if (!GAME_CONFIG.asteroids.collisionCheck || !player.mesh) return false;
+
+        const playerPos = player.mesh.position;
         const playerRadius = GAME_CONFIG.player.collisionRadius;
         
         for (const asteroid of this.asteroids) {
+            // Skip asteroids that haven't loaded yet
+            if (!asteroid.mesh) continue;
+            
             const asteroidPos = asteroid.getPosition();
             const distance = playerPos.distanceTo(asteroidPos);
             
             if (distance < (playerRadius + asteroid.getRadius())) {
                 return true;
             }
-        }*/
+        }
         return false;
     }
 } 

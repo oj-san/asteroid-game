@@ -17,8 +17,23 @@ export class DebugManager {
         this.debugElement.style.zIndex = '1000';
         document.body.appendChild(this.debugElement);
 
+        // Create command vector line element
+        this.commandVectorElement = document.createElement('div');
+        this.commandVectorElement.style.position = 'fixed';
+        this.commandVectorElement.style.left = '50%';
+        this.commandVectorElement.style.top = '50%';
+        this.commandVectorElement.style.width = '2px';
+        this.commandVectorElement.style.height = '2px';
+        this.commandVectorElement.style.backgroundColor = '#00ff00';
+        this.commandVectorElement.style.transformOrigin = '0 0';
+        this.commandVectorElement.style.pointerEvents = 'none';
+        this.commandVectorElement.style.display = 'none';
+        document.body.appendChild(this.commandVectorElement);
+
         this.lastFrameTime = performance.now();
         this.isDebugEnabled = false;  // Debug visualization starts disabled
+        this.commandVectorLine = null;
+        this.setupCommandVectorVisualization();
     }
 
     toggleDebug() {
@@ -31,6 +46,7 @@ export class DebugManager {
         if (this.sphereCenter) {
             this.sphereCenter.visible = this.isDebugEnabled;
         }
+        this.commandVectorElement.style.display = this.isDebugEnabled ? 'block' : 'none';
         this.debugElement.style.display = this.isDebugEnabled ? 'block' : 'none';
     }
 
@@ -70,11 +86,39 @@ export class DebugManager {
         }
     }
 
-    update(player, asteroidManager) {
+    setupCommandVectorVisualization() {
+        // Create line for command vector
+        const lineGeometry = new THREE.BufferGeometry();
+        const lineMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x00ff00,
+            linewidth: 2
+        });
+        this.commandVectorLine = new THREE.Line(lineGeometry, lineMaterial);
+        this.commandVectorLine.visible = this.isDebugEnabled;
+        // Position the line in front of the camera
+        this.commandVectorLine.position.z = -1;
+        this.scene.add(this.commandVectorLine);
+    }
+
+    updateCommandVectorVisualization(command) {
+        if (!this.isDebugEnabled) return;
+
+        // Scale the command vector for better visibility
+        const scale = 100; // Adjust this value to make the line longer/shorter
+        const length = Math.sqrt(command.x * command.x + command.y * command.y) * scale;
+        const angle = Math.atan2(command.y, command.x) * (180 / Math.PI);
+
+        // Update the line element
+        this.commandVectorElement.style.width = `${length}px`;
+        this.commandVectorElement.style.transform = `rotate(${angle}deg)`;
+    }
+
+    update(player, asteroidManager, inputManager) {
         if (!this.isDebugEnabled) return;
 
         const fps = Math.round(1000 / (performance.now() - this.lastFrameTime));
         const debugInfo = asteroidManager.getDebugInfo();
+        const command = inputManager.getCommand();
         
         this.debugElement.innerHTML = `
             <div>FPS: ${fps}</div>
@@ -88,23 +132,34 @@ export class DebugManager {
             <div>  Last Spawn: ${debugInfo.lastSpawnCount}</div>
             <div>Game Speed: ${GAME_CONFIG.gameSpeed.toFixed(2)}</div>
             <div>Position: (${player.mesh.position.x.toFixed(1)}, ${player.mesh.position.y.toFixed(1)}, ${player.mesh.position.z.toFixed(1)})</div>
+            <div>Command: (${command.x.toFixed(3)}, ${command.y.toFixed(3)})</div>
+            <div>Command Magnitude: ${Math.sqrt(command.x * command.x + command.y * command.y).toFixed(3)}</div>
         `;
         
         this.lastFrameTime = performance.now();
 
         // Update spawn sphere visualization
         this.updateSpawnSphereVisualization(player.mesh.position);
+
+        // Update command vector visualization
+        this.updateCommandVectorVisualization(command);
     }
 
     remove() {
         if (this.debugElement && this.debugElement.parentNode) {
             this.debugElement.parentNode.removeChild(this.debugElement);
         }
+        if (this.commandVectorElement && this.commandVectorElement.parentNode) {
+            this.commandVectorElement.parentNode.removeChild(this.commandVectorElement);
+        }
         if (this.sphereDebug) {
             this.scene.remove(this.sphereDebug);
         }
         if (this.sphereCenter) {
             this.scene.remove(this.sphereCenter);
+        }
+        if (this.commandVectorLine) {
+            this.scene.remove(this.commandVectorLine);
         }
     }
 } 

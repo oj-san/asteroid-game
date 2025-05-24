@@ -37,16 +37,20 @@ export class Asteroid {
         );
     }
 
-    update() {
+    update(deltaTime) {
         if (this.mesh) {
-            // Rotate asteroid
-            this.mesh.rotation.x += GAME_CONFIG.asteroids.rotation.speed;
-            this.mesh.rotation.y += GAME_CONFIG.asteroids.rotation.speed;
+            // Rotate asteroid using deltaTime for frame-rate independent rotation
+            this.mesh.rotation.x += GAME_CONFIG.asteroids.rotation.speed * deltaTime;
+            this.mesh.rotation.y += GAME_CONFIG.asteroids.rotation.speed * deltaTime;
         }
     }
 
     getPosition() {
-        return this.mesh ? this.mesh.position : new THREE.Vector3();
+        if (!this.mesh) {
+            // Return a default position using the initial spawn distance from config
+            return new THREE.Vector3(0, 0, GAME_CONFIG.asteroids.pool.initialSpawnDistance);
+        }
+        return this.mesh.position;
     }
 
     getRadius() {

@@ -6,6 +6,7 @@ export class Player {
     constructor(scene) {
         this.scene = scene;
         this.movementSensitivity = GAME_CONFIG.player.movementSensitivity;
+        this.mesh = null;  // Initialize mesh as null
         this.createMesh();
     }
 
@@ -24,20 +25,23 @@ export class Player {
         );
     }
 
-    update(inputManager) {
-        // Get mouse movement
-        const movement = inputManager.getMovement();
+    update(inputManager, deltaTime) {
+        // Skip update if mesh hasn't loaded yet
+        if (!this.mesh) return;
+
+        // Get command vector from input manager
+        const command = inputManager.getCommand();
         
-        // Apply mouse movement to player position
-        // Invert X movement because moving mouse right should move player right
-        this.mesh.position.x -= movement.x * this.movementSensitivity;
-        this.mesh.position.y -= movement.y * this.movementSensitivity;
-        
-        // Reset movement after applying it
-        inputManager.resetMovement();
+        // Apply movement
+        this.mesh.position.x -= command.x * this.movementSensitivity * deltaTime;
+        this.mesh.position.y -= command.y * this.movementSensitivity * deltaTime;
     }
 
     getPosition() {
+        if (!this.mesh) {
+            // Return a default position at origin if mesh isn't loaded yet
+            return new THREE.Vector3(0, 0, 0);
+        }
         return this.mesh.position;
     }
 } 
