@@ -64,11 +64,9 @@ export class AccelerometerInputManager {
             return { x: 0, y: 0 };
         }
 
-        // Apply smoothing to the command values
-        const smoothingFactor = 0.1;
         return {
-            x: this.#command.x * smoothingFactor,
-            y: this.#command.y * smoothingFactor
+            x: this.#command.x,
+            y: this.#command.y
         };
     }
 
