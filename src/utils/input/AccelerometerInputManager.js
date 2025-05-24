@@ -55,8 +55,9 @@ export class AccelerometerInputManager {
         this.#command.x = Math.max(-1, Math.min(1, gamma / 45)); // 45 degrees = max tilt
         this.#command.y = Math.max(-1, Math.min(1, beta / 45));  // 45 degrees = max tilt
 
-        // Invert Y axis to match screen coordinates
-        this.#command.y = -this.#command.y;
+        // No need to invert Y axis as beta angle already provides correct direction
+        // Tilt forward (positive beta) = move up
+        // Tilt backward (negative beta) = move down
     }
 
     getCommand() {
