@@ -7,12 +7,18 @@ import { DebugManager } from '../utils/DebugManager.js';
 import { CameraManager } from '../utils/CameraManager.js';
 import { DustParticleSystem } from '../effects/DustParticleSystem.js';
 import { SpawnManager } from '../utils/SpawnManager.js';
+import { DifficultyManager } from '../utils/DifficultyManager.js';
 import { GAME_CONFIG } from '../config/gameConfig.js';
 
 export class Game {
     constructor() {
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.camera = new THREE.PerspectiveCamera(
+            75, 
+            window.innerWidth / window.innerHeight, 
+            0.1, 
+            GAME_CONFIG.camera.farClippingPlane
+        );
         this.renderer = new THREE.WebGLRenderer();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(this.renderer.domElement);
@@ -51,26 +57,21 @@ export class Game {
         this.scoreManager = new ScoreManager();
         this.debugManager = new DebugManager(this.scene);
         this.player = new Player(this.scene);
+        this.spawnManager = SpawnManager.getInstance(this.scene);
         this.asteroidManager = new AsteroidManager(this.scene, this.player);
         this.cameraManager = new CameraManager(this.camera);
         this.dustParticleSystem = new DustParticleSystem(this.scene);
-        this.spawnManager = SpawnManager.getInstance(this.scene);
-        
-        // Initialize debug visualization
-        this.debugManager.createSpawnSphereVisualization(
-            GAME_CONFIG.asteroids.spawnSphere.radius,
-            GAME_CONFIG.asteroids.spawnSphere.distance
-        );
+        this.difficultyManager = new DifficultyManager();
         
         this.gameOver = false;
         this.gameTime = 0; // Track game time for scoring
     }
 
     setupLighting() {
-        const ambientLight = new THREE.AmbientLight(0x404040);
+        const ambientLight = new THREE.AmbientLight(0x404040, 20);
         this.scene.add(ambientLight);
         
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.1);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 30);
         directionalLight.position.set(1, 1, 1);
         this.scene.add(directionalLight);
     }
@@ -119,6 +120,15 @@ export class Game {
             this.dustParticleSystem.remove();
         }
         
+        // Reset score display
+        if (this.scoreManager) {
+            this.scoreManager.reset();
+        }
+
+        // Reset game time
+        this.gameTime = 0;
+        this.lastFrameTime = performance.now();
+        
         this.initializeGame();
         this.gameLoop();
     }
@@ -134,23 +144,34 @@ export class Game {
         // Update game time
         this.gameTime += deltaTime;
 
+        // Update difficulty
+        this.difficultyManager.update(this.gameTime);
+
         // Update player with deltaTime
         this.player.update(this.inputManager, deltaTime);
 
         // Update score display with game time
-        this.scoreManager.updateDisplay(this.gameTime);
+        this.scoreManager.updateDisplay(this.gameTime, this.difficultyManager.getCurrentGameSpeed());
 
         // Update debug display
-        this.debugManager.update(this.player, this.asteroidManager, this.inputManager);
+        this.debugManager.update(this.player, this.asteroidManager, this.inputManager, this.difficultyManager);
 
         // Update camera using camera manager
         this.cameraManager.update(this.player, deltaTime);
 
-        // Update asteroids with delta time
-        this.asteroidManager.update(deltaTime);
+        // Update asteroids with delta time and current game speed
+        this.asteroidManager.update(
+            deltaTime, 
+            this.difficultyManager.getCurrentGameSpeed(),
+            this.difficultyManager.getCurrentSpawnRate()
+        );
         
         // Update dust particles
-        this.dustParticleSystem.update(this.player.getPosition(), deltaTime);
+        this.dustParticleSystem.update(
+            this.player.getPosition(), 
+            deltaTime,
+            this.difficultyManager.getCurrentGameSpeed()
+        );
         
         // Update spawn manager
         this.spawnManager.update(this.player.getPosition());
@@ -163,7 +184,7 @@ export class Game {
 
     handleGameOver() {
         this.gameOver = true;
-        const timeInMinutes = (this.gameTime / 60).toFixed(1);
+        const timeInSeconds = Math.floor(this.gameTime);
         
         // Create game over message
         this.gameOverMessage = document.createElement('div');
@@ -179,11 +200,11 @@ export class Game {
         this.gameOverMessage.style.padding = '20px';
         this.gameOverMessage.style.borderRadius = '10px';
         this.gameOverMessage.style.zIndex = '1000';
-        this.gameOverMessage.style.cursor = 'pointer'; // Add pointer cursor
+        this.gameOverMessage.style.cursor = 'pointer';
         
         this.gameOverMessage.innerHTML = `
             <h2>Game Over!</h2>
-            <p>Survival Time: ${timeInMinutes} minutes</p>
+            <p>Survival Time: ${timeInSeconds} seconds</p>
             <p>Click or tap anywhere to restart</p>
         `;
         

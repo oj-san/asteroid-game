@@ -13,22 +13,22 @@ export class Player {
     createMesh() {
         const loader = new GLTFLoader();
         loader.load(
-            `${import.meta.env.BASE_URL}art/ship.glb`,
-            (gltf) => {
-                this.mesh = gltf.scene;
-                this.scene.add(this.mesh);
-            },
-            undefined,
-            (error) => {
-                console.error('Error loading ship model:', error);
-            }
+          `${import.meta.env.BASE_URL}art/ship.glb`,
+          (gltf) => {
+            this.mesh = gltf.scene;
+            this.scene.add(this.mesh);
+          },
+          undefined,
+          (error) => {
+            console.error('Error loading ship model:', error);
+          }
         );
-    }
-
+      }
+      
     update(inputManager, deltaTime) {
         // Skip update if mesh hasn't loaded yet
         if (!this.mesh) return;
-
+        
         // Get command vector from input manager
         const command = inputManager.getCommand();
         

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Asteroid } from './Asteroid.js';
 import { GAME_CONFIG } from '../config/gameConfig.js';
+import { SpawnManager } from '../utils/SpawnManager.js';
 
 export class AsteroidManager {
     constructor(scene, player) {
@@ -9,6 +10,7 @@ export class AsteroidManager {
         this.asteroids = [];
         this.spawnTimer = 0;
         this.lastSpawnCount = 0;  // Track how many asteroids were spawned in the last update
+        this.spawnManager = SpawnManager.getInstance(scene);
         this.initializePool();
     }
 
@@ -20,30 +22,10 @@ export class AsteroidManager {
                 GAME_CONFIG.asteroids.size.min;
             
             const position = new THREE.Vector3(0, 0, GAME_CONFIG.asteroids.pool.initialSpawnDistance); // Behind player
-            
+        
             const asteroid = new Asteroid(this.scene, position, size);
             this.asteroids.push(asteroid);
         }
-    }
-
-    getRandomPositionInSphere() {
-        const playerPos = this.player.mesh.position;
-        const center = new THREE.Vector3(
-            playerPos.x,
-            playerPos.y,
-            playerPos.z + GAME_CONFIG.asteroids.spawnSphere.distance
-        );
-
-        // Generate random point in sphere
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        const r = GAME_CONFIG.asteroids.spawnSphere.radius * Math.cbrt(Math.random());
-
-        return new THREE.Vector3(
-            center.x + r * Math.sin(phi) * Math.cos(theta),
-            center.y + r * Math.sin(phi) * Math.sin(theta),
-            center.z + r * Math.cos(phi)
-        );
     }
 
     isValidPosition(position, size) {
@@ -70,33 +52,20 @@ export class AsteroidManager {
             // Get a random asteroid from the available ones
             const asteroid = availableAsteroids[Math.floor(Math.random() * availableAsteroids.length)];
             
-            // Try to find a valid position in the spawn sphere
-            let newPosition;
-            let attempts = 0;
-            const maxAttempts = 10;
-
-            do {
-                newPosition = this.getRandomPositionInSphere();
-                attempts++;
-            } while (GAME_CONFIG.asteroids.spawnSphere.checkOverlap && 
-                    !this.isValidPosition(newPosition, asteroid.getRadius()) && 
-                    attempts < maxAttempts);
-
-            // If we're not checking overlap or we found a valid position
-            if (!GAME_CONFIG.asteroids.spawnSphere.checkOverlap || attempts < maxAttempts) {
-                asteroid.mesh.position.copy(newPosition);
-                return true;  // Successfully spawned
-            }
+            // Get a random position from the spawn manager
+            const newPosition = this.spawnManager.getRandomPositionInBox();
+            asteroid.mesh.position.copy(newPosition);
+            return true;  // Successfully spawned
         }
         return false;  // Failed to spawn
     }
 
-    update(deltaTime) {
+    update(deltaTime, gameSpeed, spawnRate) {
         // Update spawn timer
         this.spawnTimer += deltaTime;
         
-        // Calculate how many asteroids to spawn based on time and rate
-        const asteroidsToSpawn = Math.floor(this.spawnTimer * GAME_CONFIG.asteroids.pool.spawnRate);
+        // Calculate how many asteroids to spawn based on time and current spawn rate
+        const asteroidsToSpawn = Math.floor(this.spawnTimer * spawnRate);
         
         // Spawn asteroids and reset timer
         this.lastSpawnCount = 0;  // Reset spawn count
@@ -114,7 +83,7 @@ export class AsteroidManager {
             const asteroidPos = asteroid.getPosition();
             
             // Move asteroid towards player along Z axis only, using deltaTime for frame-rate independent movement
-            asteroidPos.z -= GAME_CONFIG.gameSpeed * deltaTime;
+            asteroidPos.z -= gameSpeed * deltaTime;
             
             asteroid.update(deltaTime);
         }

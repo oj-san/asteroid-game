@@ -19,22 +19,42 @@ export class Asteroid {
                 // Scale the model based on the size parameter
                 const scale = this.size; // Adjust this divisor based on the model's base size
                 this.mesh.scale.set(scale, scale, scale);
-                
-                // Set position
-                this.mesh.position.copy(position);
-                
-                // Random rotation
-                this.mesh.rotation.x = Math.random() * Math.PI;
-                this.mesh.rotation.y = Math.random() * Math.PI;
-                this.mesh.rotation.z = Math.random() * Math.PI;
-                
-                this.scene.add(this.mesh);
+        
+        // Set position
+        this.mesh.position.copy(position);
+        
+        // Random rotation
+        this.mesh.rotation.x = Math.random() * Math.PI;
+        this.mesh.rotation.y = Math.random() * Math.PI;
+        this.mesh.rotation.z = Math.random() * Math.PI;
+        
+        this.scene.add(this.mesh);
+
+        // Create collision sphere if debug is enabled
+        if (GAME_CONFIG.asteroids.debug.showCollisionSpheres) {
+            this.createCollisionSphere();
+        }
             },
             undefined,
             (error) => {
                 console.error('Error loading asteroid model:', error);
             }
         );
+    }
+
+    createCollisionSphere() {
+        // Create a sphere geometry for the collision visualization
+        // Use radius of 1 since the sphere will be scaled by the parent asteroid mesh
+        const sphereGeometry = new THREE.SphereGeometry(1, 8, 8);
+        const sphereMaterial = new THREE.MeshBasicMaterial({
+            color: GAME_CONFIG.asteroids.debug.sphereColor,
+            transparent: true,
+            opacity: GAME_CONFIG.asteroids.debug.sphereOpacity,
+            wireframe: true
+        });
+        
+        this.collisionSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+        this.mesh.add(this.collisionSphere); // Add as child of the asteroid mesh
     }
 
     update(deltaTime) {
@@ -59,7 +79,7 @@ export class Asteroid {
 
     remove() {
         if (this.mesh) {
-            this.scene.remove(this.mesh);
+        this.scene.remove(this.mesh);
         }
     }
 } 
